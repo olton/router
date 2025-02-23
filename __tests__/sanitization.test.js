@@ -1,5 +1,5 @@
 import { it, describe, beforeEach, expect } from '@olton/easytest'
-import Router from '../dist/router.js'
+import Router from '../src/index.js'
 
 describe('Router Path Sanitization', () => {
     let router;

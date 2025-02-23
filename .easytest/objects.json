@@ -7,22 +7,22 @@
   "b3040b6e5065fa7b720ffa68537be159b424f06986b3a36d5271e0ab016ff942": {
     "file": "__tests__\\state.test.js",
     "tests": 2,
-    "duration": 2.1854
+    "duration": 2.3808
   },
   "bbed6b386b7520e32a383591a5e43d557cd24bc0c144d885017104c2e19773e5": {
     "file": "__tests__\\parameters.test.js",
     "tests": 2,
-    "duration": 0.8478
+    "duration": 0.9695
   },
   "88b950142937e79068466dbcd127dc3bef5bb27b31eba2502c5e0fa3b063dc24": {
     "file": "__tests__\\navigation.test.js",
     "tests": 2,
-    "duration": 0.8147
+    "duration": 0.9103
   },
   "8b93a88a2b6f907d3d7d25559f6058abcd11f5ca6412546f2d342d594bcdd631": {
     "file": "__tests__\\base.test.js",
     "tests": 4,
-    "duration": 1.1816
+    "duration": 1.412
   },
   "030c5ed4dc5f15b18095ce15674d76681969fbe70bbefc0d8357dbc6cb1bd1bd": {
     "file": "__tests__\\sanitization.test.js",
@@ -32,6 +32,31 @@
   "952a99bbda88eaf2812b3d8dc58f42232cfcd65b49ff2c0a5ed8cbab49332a80": {
     "file": "__tests__\\sanitization.test.js",
     "tests": 9,
-    "duration": 1.8841
+    "duration": 1.6722
+  },
+  "d69814f5c61318d72b1fc0c084ab8cf456146526f2c4b4d7c7aaefcc6573841a": {
+    "file": "__tests__\\state.test.js",
+    "tests": 2,
+    "duration": 2.4001
+  },
+  "dd652a0803730c6d46502c8a00db1dc63683267d0c38ce20bde4acd08b122368": {
+    "file": "__tests__\\sanitization.test.js",
+    "tests": 9,
+    "duration": 1.5362
+  },
+  "65f4ee5a99846b785f7dcb56c8857cb34b93f91236faa1f7786933382d646190": {
+    "file": "__tests__\\parameters.test.js",
+    "tests": 2,
+    "duration": 0.7551
+  },
+  "a0082ecc822a0cdd78a8ebf026bbc7e3eee3d31b4a50a5e43b49b6109b2a4d3b": {
+    "file": "__tests__\\navigation.test.js",
+    "tests": 2,
+    "duration": 0.837
+  },
+  "e2f10bfe3fdeb81fe0125cbf1435d6dc8b6ea8ffcbe1c5dec658778ff0890c1d": {
+    "file": "__tests__\\base.test.js",
+    "tests": 4,
+    "duration": 1.1323
   }
 }
