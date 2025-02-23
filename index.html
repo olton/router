@@ -12,27 +12,16 @@
     <li><a href="/product/123">Product</a></li>
 </ul>
 <div id="content"></div>
-<script type="module">
-    import Router from './dist/router.js'
+<script src="./lib/router.js"></script>
+<script>
     Router.info()
     const content = document.getElementById('content')
     const router = new Router()
-    router.addRoute('/', () => {
-        content.innerHTML = '<h1>Index</h1>'
-    })
-    router.addRoute('/about', () => {
-        content.innerHTML = '<h1>About</h1>'
-    })
-    router.addRoute('/products', () => {
-        content.innerHTML = '<h1>Products</h1>'
-    })
-    router.addRoute('/product/:id', (params) => {
-        content.innerHTML = `<h1>Product ${params.id}</h1>`
-    })
-    router.addRoute('/404', (params) => {
-        content.innerHTML = `<h1>Not found</h1>`
-    })
-    console.log(router.getRoutes())
+    router.addRoute('/', () => { content.innerHTML = '<h1>Index</h1>' })
+    router.addRoute('/about', () => { content.innerHTML = '<h1>About</h1>' })
+    router.addRoute('/products', () => { content.innerHTML = '<h1>Products</h1>' })
+    router.addRoute('/product/:id', (params) => { content.innerHTML = `<h1>Product ${params.id}</h1>` })
+    router.addRoute('/404', () => { content.innerHTML = `<h1>Not found</h1>` })
     router.listen()
 </script>
 </body>

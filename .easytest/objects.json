@@ -1,0 +1,37 @@
+{
+  "19dd7eb47d703c9ed8b025ab3f117702bb7887d37ba1f9813f0b1bdc30e9ea18": {
+    "file": "__tests__\\router.test.js",
+    "tests": 8,
+    "duration": 3.9151
+  },
+  "b3040b6e5065fa7b720ffa68537be159b424f06986b3a36d5271e0ab016ff942": {
+    "file": "__tests__\\state.test.js",
+    "tests": 2,
+    "duration": 2.1854
+  },
+  "bbed6b386b7520e32a383591a5e43d557cd24bc0c144d885017104c2e19773e5": {
+    "file": "__tests__\\parameters.test.js",
+    "tests": 2,
+    "duration": 0.8478
+  },
+  "88b950142937e79068466dbcd127dc3bef5bb27b31eba2502c5e0fa3b063dc24": {
+    "file": "__tests__\\navigation.test.js",
+    "tests": 2,
+    "duration": 0.8147
+  },
+  "8b93a88a2b6f907d3d7d25559f6058abcd11f5ca6412546f2d342d594bcdd631": {
+    "file": "__tests__\\base.test.js",
+    "tests": 4,
+    "duration": 1.1816
+  },
+  "030c5ed4dc5f15b18095ce15674d76681969fbe70bbefc0d8357dbc6cb1bd1bd": {
+    "file": "__tests__\\sanitization.test.js",
+    "tests": 9,
+    "duration": 2.1728
+  },
+  "952a99bbda88eaf2812b3d8dc58f42232cfcd65b49ff2c0a5ed8cbab49332a80": {
+    "file": "__tests__\\sanitization.test.js",
+    "tests": 9,
+    "duration": 1.8841
+  }
+}

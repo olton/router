@@ -61,16 +61,72 @@ class Router {
     }
 
     sanitizePath(path) {
-        // Базова санітизація URL
         try {
+            if (!path) return '/';
+
             const url = new URL(path, window.location.origin);
-            return decodeURIComponent(url.pathname)
-                .replace(/[^\w\s/-]/g, '')  // Дозволяємо лише безпечні символи
-                .replace(/\/+/g, '/');      // Уникаємо подвійних слешів
+            let sanitized = decodeURIComponent(url.pathname)
+
+            sanitized = sanitized
+                // Видаляємо небезпечні символи
+                .replace(/[<>'"`;(){}]/g, '')
+                // Видаляємо керуючі символи
+                .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+                // Видаляємо множинні слеші на початку
+                .replace(/([^/])\/{2,}/g, '$1/')
+                // Видаляємо множинні слеші
+                .replace(/\/+/g, '/')
+                // Видаляємо trailing слеш (окрім кореневого шляху)
+                .replace(/(.+)\/$/, '$1')
+                // Видаляємо точки для запобігання path traversal
+                .replace(/\.+/g, '.')
+                // Видаляємо спроби path traversal
+                .split('/')
+                .filter(segment => segment !== '..' && segment !== '.')
+                .join('/');
+            
+            // Переконуємося що шлях починається з /
+            if (!sanitized.startsWith('/')) {
+                sanitized = '/' + sanitized;
+            }
+
+            // Додаткові перевірки безпеки
+            if (this.isBlockedPath(sanitized)) {
+                Router.log('Blocked malicious path:', path);
+                return '/';
+            }
+
+            return sanitized;
         } catch (e) {
             Router.log('Invalid URL:', e);
             return '/';
         }
+    }
+
+    isBlockedPath(path) {
+        // Список заборонених шляхів
+        const blockedPatterns = [
+            /^\/(api|admin|wp-admin|wp-content|wp-includes)/i,
+            /\.(php|asp|aspx|jsp|cgi|config|env|git|sql|htaccess)$/i,
+            /\/(.+\/)*\.{2,}\//,  // Path traversal attempts
+            /javascript:/i,
+            /data:/i,
+            /vbscript:/i,
+            /file:/i
+        ];
+
+        return blockedPatterns.some(pattern => pattern.test(path));
+    }
+
+    test(path) {
+        const original = path;
+        const sanitized = this.sanitizePath(path);
+        return {
+            original,
+            sanitized,
+            isBlocked: this.isBlockedPath(sanitized),
+            isModified: original !== sanitized
+        };
     }
 
     beforeEach(hook) {
@@ -110,7 +166,7 @@ class Router {
         if (this.redirectCount > this.maxRedirects) {
             console.error('Maximum redirect limit reached');
             this.redirectCount = 0;
-            this.navigateTo('/error', true);
+            await this.navigateTo('/error', true);
             return;
         }
         this.redirectCount++;
@@ -150,7 +206,7 @@ class Router {
     }
 
 
-    navigateTo(path, replaceState = false) {
+    async navigateTo(path, replaceState = false) {
         Router.log('Programmatic navigation to:', path);
         this.redirectCount = 0;
         const url = new URL(path, window.location.origin);
@@ -159,7 +215,7 @@ class Router {
         } else {
             window.history.pushState({}, '', url);
         }
-        this.navigate(url.pathname);
+        await this.navigate(url.pathname);
     }
 
     matchRoute(path) {

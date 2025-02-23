@@ -53,8 +53,8 @@ if (production) {
 
     await build({
         ...options,
+        entryPoints: ['./src/browser.js'],
         format: 'iife',
-        globalName: 'Router',
         outfile: './lib/router.js',
     })
 } else {
@@ -66,8 +66,8 @@ if (production) {
 
     const ctxLib = await context({
         ...options,
+        entryPoints: ['./src/browser.js'],
         format: 'iife',
-        globalName: 'Router',
         outfile: './lib/router.js',
     })
 

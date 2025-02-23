@@ -1,7 +1,7 @@
 
 /*!
  * Router v0.1.0 (Router ror SPA)
- * Build: 23.02.2025, 07:05:20
+ * Build: 23.02.2025, 08:41:01
  * Copyright 2025 by Serhii Pimenov
  * Licensed under MIT
  */
@@ -9,7 +9,7 @@
 
 // src/router.js
 var version = "0.1.0";
-var build_time = "23.02.2025, 07:05:20";
+var build_time = "23.02.2025, 08:41:01";
 var Router = class _Router {
   static debug = false;
   static log(...args) {
@@ -61,12 +61,45 @@ var Router = class _Router {
   }
   sanitizePath(path) {
     try {
+      if (!path) return "/";
       const url = new URL(path, window.location.origin);
-      return decodeURIComponent(url.pathname).replace(/[^\w\s/-]/g, "").replace(/\/+/g, "/");
+      let sanitized = decodeURIComponent(url.pathname);
+      sanitized = sanitized.replace(/[<>'"`;(){}]/g, "").replace(/[\u0000-\u001F\u007F-\u009F]/g, "").replace(/([^/])\/{2,}/g, "$1/").replace(/\/+/g, "/").replace(/(.+)\/$/, "$1").replace(/\.+/g, ".").split("/").filter((segment) => segment !== ".." && segment !== ".").join("/");
+      if (!sanitized.startsWith("/")) {
+        sanitized = "/" + sanitized;
+      }
+      if (this.isBlockedPath(sanitized)) {
+        _Router.log("Blocked malicious path:", path);
+        return "/";
+      }
+      return sanitized;
     } catch (e) {
       _Router.log("Invalid URL:", e);
       return "/";
     }
+  }
+  isBlockedPath(path) {
+    const blockedPatterns = [
+      /^\/(api|admin|wp-admin|wp-content|wp-includes)/i,
+      /\.(php|asp|aspx|jsp|cgi|config|env|git|sql|htaccess)$/i,
+      /\/(.+\/)*\.{2,}\//,
+      // Path traversal attempts
+      /javascript:/i,
+      /data:/i,
+      /vbscript:/i,
+      /file:/i
+    ];
+    return blockedPatterns.some((pattern) => pattern.test(path));
+  }
+  test(path) {
+    const original = path;
+    const sanitized = this.sanitizePath(path);
+    return {
+      original,
+      sanitized,
+      isBlocked: this.isBlockedPath(sanitized),
+      isModified: original !== sanitized
+    };
   }
   beforeEach(hook) {
     _Router.log("Register BE hook ", hook.name);
@@ -99,7 +132,7 @@ var Router = class _Router {
     if (this.redirectCount > this.maxRedirects) {
       console.error("Maximum redirect limit reached");
       this.redirectCount = 0;
-      this.navigateTo("/error", true);
+      await this.navigateTo("/error", true);
       return;
     }
     this.redirectCount++;
@@ -130,7 +163,7 @@ var Router = class _Router {
       this.routes["/404"] && this.routes["/404"]();
     }
   }
-  navigateTo(path, replaceState = false) {
+  async navigateTo(path, replaceState = false) {
     _Router.log("Programmatic navigation to:", path);
     this.redirectCount = 0;
     const url = new URL(path, window.location.origin);
@@ -139,7 +172,7 @@ var Router = class _Router {
     } else {
       window.history.pushState({}, "", url);
     }
-    this.navigate(url.pathname);
+    await this.navigate(url.pathname);
   }
   matchRoute(path) {
     if (this.cache.has(path)) {
