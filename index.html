@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<ul>
+    <li><a href="/">Index</a></li>
+    <li><a href="/about">About</a></li>
+    <li><a href="/products">Products</a></li>
+    <li><a href="/product/123">Product</a></li>
+</ul>
+<div id="content"></div>
+<script type="module">
+    import Router from './dist/router.js'
+    Router.info()
+    const content = document.getElementById('content')
+    const router = new Router()
+    router.addRoute('/', () => {
+        content.innerHTML = '<h1>Index</h1>'
+    })
+    router.addRoute('/about', () => {
+        content.innerHTML = '<h1>About</h1>'
+    })
+    router.addRoute('/products', () => {
+        content.innerHTML = '<h1>Products</h1>'
+    })
+    router.addRoute('/product/:id', (params) => {
+        content.innerHTML = `<h1>Product ${params.id}</h1>`
+    })
+    router.addRoute('/404', (params) => {
+        content.innerHTML = `<h1>Not found</h1>`
+    })
+    console.log(router.getRoutes())
+    router.listen()
+</script>
+</body>
+</html>

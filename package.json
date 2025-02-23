@@ -1,0 +1,49 @@
+{
+  "name": "@olton/router",
+  "title": "Router",
+  "description": "Router for SPA.",
+  "version": "0.1.0",
+  "main": "dist/router.js",
+  "type": "module",
+  "types": "ts/router.d.ts",
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://metroui.org.ua/",
+  "author": {
+    "name": "Serhii Pimenov",
+    "url": "https://pimenov.com.ua",
+    "email": "serhii@pimenov.com.ua"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/olton/router.git"
+  },
+  "keywords": [
+    "javascript",
+    "router",
+    "spa",
+    "library"
+  ],
+  "bugs": {
+    "url": "https://github.com/olton/router/issues"
+  },
+  "browserslist": [
+    "last 2 versions"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "clean": "shx rm -rf dist/* lib/*",
+    "build": "npm run clean && cross-env NODE_NO_WARNINGS=1 MODE=production node build.js",
+    "dev": "npm run clean && cross-env NODE_NO_WARNINGS=1 MODE=development node build.js",
+    "pub": "npm run build && npm publish --access public"
+  },
+  "devDependencies": {
+    "@olton/esbuild-plugin-progress": "^0.3.0",
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.24.2",
+    "esbuild-plugin-replace": "^1.4.0",
+    "shx": "^0.3.4",
+    "vite": "^6.1.1"
+  }
+}
