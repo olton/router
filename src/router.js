@@ -15,7 +15,7 @@ class Router {
         this.fallbackRoute = options.fallback || '/';
         this.maxRedirects = options.maxRedirects || 5;
         this.redirectCount = 0;
-        this.basePath = options.basePath || '';
+        this.basePath = options.base || '';
         this.middleware = [];
         this.beforeEachHooks = [];
         this.afterEachHooks = [];
@@ -23,11 +23,18 @@ class Router {
         this.cacheLimit = options.cacheLimit ?? 50;
         this.touchStartX = 0;
         this.enableSwipeNavigation = options.enableSwipeNavigation || false;
+        this.current = null;
 
         if (this.enableSwipeNavigation) {
             this.initSwipeNavigation();
         }
 
+        if (options.routes) {
+            for (const [path, callback] of Object.entries(options.routes)) {
+                this.addRoute(path, callback);
+            }
+        }
+        
         window.addEventListener('unhandledrejection', this.handleError.bind(this));
     }
 
@@ -157,6 +164,15 @@ class Router {
         }
         return false;
     }
+    
+    updateRoute(path, callback) {
+        Router.log('Update route :', path);
+        if (this.routes[path]) {
+            this.routes[path] = callback;
+            return true;
+        }
+        return false;
+    }
 
     getRoutes() {
         return this.routes;
@@ -195,11 +211,13 @@ class Router {
                     await hook(route);
                 }
 
+                this.current = route;
             } catch (error) {
                 console.error('Navigation error:', error);
                 this.routes['/error'] && this.routes['/error'](error);
             }
         } else {
+            Router.log('Run not found route!');
             this.redirectCount = 0;
             this.routes['/404'] && this.routes['/404']();
         }
