@@ -24,6 +24,7 @@ class Router {
         this.touchStartX = 0;
         this.enableSwipeNavigation = options.enableSwipeNavigation || false;
         this.current = null;
+        this.redirects = {};
 
         if (this.enableSwipeNavigation) {
             this.initSwipeNavigation();
@@ -151,6 +152,15 @@ class Router {
         this.middleware.push(middleware);
     }
 
+    addRedirect(from, to) {
+        if (this.redirects[from]) {
+            Router.log('Redirect already exists:', from);
+            return false;
+        }
+        Router.log('Add redirect:', from, '->', to);
+        this.redirects[from] = to;
+    }
+    
     addRoute(path, callback) {
         Router.log('Add route :', path);
         this.routes[path] = callback;
@@ -191,6 +201,13 @@ class Router {
 
         if (route) {
             try {
+                
+                if (this.redirects[route.path]) {
+                    Router.log('Redirecting from', route.path, 'to', this.redirects[route.path]);
+                    await this.navigateTo(this.redirects[route.path], true);
+                    return;                    
+                }
+                
                 this.redirectCount++;
 
                 for (const middleware of this.middleware) {
@@ -272,6 +289,8 @@ class Router {
                     return acc;
                 }, {});
                 return {
+                    path,
+                    pattern: regexPath,
                     callback: this.routes[route],
                     params,
                     query: queryObject
