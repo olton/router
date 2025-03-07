@@ -1,3 +1,5 @@
+import Logger from "./logger.js";
+
 const version = "__VERSION__"
 const build_time = "__BUILD_TIME__"
 
@@ -21,6 +23,9 @@ class Router {
      * 
      */
     constructor(options = {}) {
+        Logger.DEBUG_LEVEL = options.debug ? 4 : 0;
+        Logger.debug('[Router] Init Router');
+        
         this.routes = {};
         this.fallbackRoute = options.fallback || '/';
         this.maxRedirects = options.maxRedirects || 5;
@@ -43,18 +48,20 @@ class Router {
             error: []
         };
         this.plugins = [];
-
+        
         if (this.enableSwipeNavigation) {
             this.initSwipeNavigation();
         }
 
         if (options.routes) {
+            Logger.debug('[Router] Registering routes');
             for (const [path, callback] of Object.entries(options.routes)) {
                 this.addRoute(path, callback);
             }
         }
 
         if (options.plugins && Array.isArray(options.plugins)) {
+            Logger.debug('[Router] Registering plugins');
             options.plugins.forEach(plugin => {
                 if (Array.isArray(plugin)) {
                     this.usePlugin(plugin[0], plugin[1] || {});
@@ -63,8 +70,11 @@ class Router {
                 }
             });
         }
-        
+
+        Logger.debug('[Router] Subscribing to unhandledrejection event');
         window.addEventListener('unhandledrejection', this.handleError.bind(this));
+
+        Logger.debug('[Router] Router Initialized');
     }
 
     /**
@@ -74,6 +84,7 @@ class Router {
      * @returns {Router}
      */
     on(event, callback) {
+        Logger.debug(`[Router] Subscribing to event ${event}`);
         if (this.events[event]) {
             this.events[event].push(callback);
         }
@@ -87,6 +98,7 @@ class Router {
      * @returns {boolean}
      */
     emit(event, ...args) {
+        Logger.debug(`[Router] Emitting event ${event}`);
         if (this.events[event]) {
             for (const callback of this.events[event]) {
                 const result = callback(...args);
@@ -102,19 +114,23 @@ class Router {
      * Initialize swipe navigation for touch devices.
      */
     initSwipeNavigation() {
+        Logger.debug('[Router] Initializing swipe navigation');
+        Logger.debug('[Router] Adding touchstart event listener');
         document.addEventListener('touchstart', (e) => {
             this.touchStartX = e.touches[0].clientX;
         }, { passive: true });
 
+        Logger.debug('[Router] Adding touchend event listener');
         document.addEventListener('touchend', (e) => {
             const touchEndX = e.changedTouches[0].clientX;
             const diff = this.touchStartX - touchEndX;
 
-            // Свайп вправо/вліво для навігації
             if (Math.abs(diff) > 100) {
                 if (diff > 0) {
+                    Logger.debug('[Router] Swiping right (forward)');
                     window.history.forward();
                 } else {
+                    Logger.debug('[Router] Swiping left (backward)');
                     window.history.back();
                 }
             }
@@ -126,6 +142,7 @@ class Router {
      * @param error
      */
     handleError(error) {
+        Logger.error('[Router] Error during navigation:', error);
         this.emit('error', error);
         if (this.routes['/error']) {
             this.navigateTo('/error', true);
@@ -140,6 +157,7 @@ class Router {
      * @returns {string}
      */
     sanitizePath(path) {
+        Logger.debug('[Router] Sanitizing path:', path);
         try {
             if (!path) return '/';
 
@@ -174,8 +192,10 @@ class Router {
                 return '/';
             }
 
+            Logger.debug('[Router] Sanitized path:', sanitized);
             return sanitized;
         } catch (e) {
+            Logger.error('[Router] Error sanitizing path:', e);
             return '/';
         }
     }
@@ -186,6 +206,7 @@ class Router {
      * @returns {boolean}
      */
     isBlockedPath(path) {
+        Logger.debug('[Router] Checking if path is blocked:', path);
         // Список заборонених шляхів
         const blockedPatterns = [
             /^\/(api|admin|wp-admin|wp-content|wp-includes)/i,
@@ -206,14 +227,17 @@ class Router {
      * @returns {{original, sanitized: string, isBlocked: boolean, isModified: boolean}}
      */
     test(path) {
+        Logger.debug('[Router] Testing path:', path);
         const original = path;
         const sanitized = this.sanitizePath(path);
-        return {
+        const result = {
             original,
             sanitized,
             isBlocked: this.isBlockedPath(sanitized),
             isModified: original !== sanitized
-        };
+        } 
+        Logger.debug(`[Router] test result for path ${path}:`, result);
+        return result;
     }
 
     /**
@@ -222,6 +246,7 @@ class Router {
      * @returns {Router}
      */
     beforeEach(hook) {
+        Logger.debug('[Router] Adding beforeEach hook');
         this.beforeEachHooks.push(hook);
         return this;
     }
@@ -232,6 +257,7 @@ class Router {
      * @returns {Router}
      */
     afterEach(hook) {
+        Logger.debug('[Router] Adding afterEach hook');
         this.afterEachHooks.push(hook);
         return this;
     }
@@ -242,6 +268,7 @@ class Router {
      * @returns {Router}
      */
     use(middleware) {
+        Logger.debug('[Router] Adding middleware');
         this.middleware.push(middleware);
         return this;
     }
@@ -253,6 +280,7 @@ class Router {
      * @returns {Router|boolean}
      */
     addRedirect(from, to) {
+        Logger.debug('[Router] Adding redirect from', from, 'to', to);
         if (this.redirects[from]) {
             return false;
         }
@@ -267,6 +295,7 @@ class Router {
      * @returns {Router}
      */
     addRoute(path, callback) {
+        Logger.debug('[Router] Adding route', path);
         this.routes[path] = callback;
         return this
     }
@@ -279,6 +308,7 @@ class Router {
      * @returns {Router}
      */
     addNestedRoute(parentPath, path, callback) {
+        Logger.debug('[Router] Adding nested route', path, 'to', parentPath);
         const fullPath = `${parentPath}${path}`.replace(/\/\//g, '/');
         this.addRoute(fullPath, callback);
         return this; // Для цепочки вызовов
@@ -291,6 +321,7 @@ class Router {
      * @returns {Router}
      */
     addLazyRoute(path, importFunc) {
+        Logger.debug('[Router] Adding lazy-loaded route', path);
         this.addRoute(path, async (params) => {
             try {
                 const module = await importFunc();
@@ -311,6 +342,7 @@ class Router {
      * @returns {Router}
      */
     addLazyNestedRoute(parentPath, path, importFunc) {
+        Logger.debug('[Router] Adding lazy-loaded nested route', path, 'to', parentPath);
         const fullPath = `${parentPath}${path}`.replace(/\/\//g, '/');
         this.addLazyRoute(fullPath, importFunc);
         return this; // Для цепочки вызовов
@@ -322,6 +354,7 @@ class Router {
      * @returns {Router}
      */
     addFallbackRoute(path) {
+        Logger.debug('[Router] Adding fallback route', path);
         this.fallbackRoute = path;
         return this;
     }
@@ -332,6 +365,7 @@ class Router {
      * @returns {Router}
      */
     add404Route(path) {
+        Logger.debug('[Router] Adding 404 route', path);
         this.routes['/404'] = path;
         return this;
     }
@@ -342,6 +376,7 @@ class Router {
      * @returns {Router}
      */
     addErrorRoute(path) {
+        Logger.debug('[Router] Adding error route', path);
         this.routes['/error'] = path;
         return this;
     }
@@ -351,14 +386,18 @@ class Router {
      * @param path
      * @param callback
      * @param guardFunction
+     * @param fallback
      * @returns {Router}
      */
-    addProtectedRoute(path, callback, guardFunction) {
+    addProtectedRoute(path, callback, guardFunction, fallback = '/login') {
+        Logger.debug('[Router] Adding protected route', path);
         this.addRoute(path, async (params) => {
             if (await guardFunction(params)) {
+                Logger.debug('[Router] Guard function passed, executing callback');
                 return callback(params);
             } else {
-                await this.navigateTo('/login', true);
+                Logger.debug('[Router] Guard function failed, redirecting to', fallback);
+                await this.navigateTo(fallback, true);
             }
         });
         return this;
@@ -370,6 +409,7 @@ class Router {
      * @returns {Router}
      */
     removeRoute(path) {
+        Logger.debug('[Router] Removing route', path);
         if (this.routes[path]) {
             delete this.routes[path];
         }
@@ -383,6 +423,7 @@ class Router {
      * @returns {Router}
      */
     updateRoute(path, callback) {
+        Logger.debug('[Router] Updating route', path);
         if (this.routes[path]) {
             this.routes[path] = callback;
         }
@@ -394,6 +435,7 @@ class Router {
      * @returns {*|{}}
      */
     getRoutes() {
+        Logger.debug('[Router] Getting registered routes');
         return this.routes;
     }
 
@@ -403,7 +445,9 @@ class Router {
      * @returns {Promise<void>}
      */
     async navigate(path) {
+        Logger.debug('[Router] Navigating to', path);
         if (this.redirectCount > this.maxRedirects) {
+            Logger.error('[Router] Maximum redirect limit reached, redirecting to', this.fallbackRoute);
             console.error('Maximum redirect limit reached');
             this.redirectCount = 0;
             this.emit('error', new Error('Maximum redirect limit reached'));
@@ -416,13 +460,15 @@ class Router {
 
         if (route) {
             try {
-                // Событие перед навигацией
-                const canContinue = await this.emit('beforeNavigate', route);
+                Logger.debug('[Router] Route matched:', route);
+                const canContinue = this.emit('beforeNavigate', route);
                 if (canContinue === false) {
+                    Logger.debug('[Router] Navigation cancelled by beforeNavigate hook');
                     return;
                 }
 
                 if (this.redirects[route.path]) {
+                    Logger.debug('[Router] Redirecting to', this.redirects[route.path]);
                     await this.navigateTo(this.redirects[route.path], true);
                     return;
                 }
@@ -430,28 +476,35 @@ class Router {
                 this.redirectCount++;
 
                 for (const middleware of this.middleware) {
+                    Logger.debug('[Router] Executing middleware');
                     await middleware(route);
                 }
 
                 for (const hook of this.beforeEachHooks) {
+                    Logger.debug('[Router] Executing beforeEach hook');
                     await hook(route);
                 }
 
+                Logger.debug('[Router] Executing route callback');
                 await route.callback(route.params);
 
                 for (const hook of this.afterEachHooks) {
+                    Logger.debug('[Router] Executing afterEach hook');
                     await hook(route);
                 }
 
                 this.current = route;
 
                 this.emit('afterNavigate', route);
+                Logger.debug('[Router] Navigation completed');
             } catch (error) {
+                Logger.error('[Router] Error during navigation:', error);
                 console.error('Navigation error:', error);
                 this.emit('error', error); // Событие ошибки
                 this.routes['/error'] && this.routes['/error'](error);
             }
         } else {
+            Logger.warn('[Router] Route not found:', path);
             this.redirectCount = 0;
             this.emit('routeNotFound', path); // Событие "маршрут не найден"
             this.routes['/404'] && this.routes['/404']();
@@ -465,13 +518,17 @@ class Router {
      * @returns {Promise<void>}
      */
     async navigateTo(path, replaceState = false) {
+        Logger.debug(`[Router] Navigating to ${path} ${replaceState ? "with replace state" : ""}`);
         this.redirectCount = 0;
         const url = new URL(path, window.location.origin);
         if (replaceState) {
+            Logger.debug('[Router] Replacing state with', url);
             window.history.replaceState({}, '', url);
         } else {
+            Logger.debug('[Router] Pushing state with', url);
             window.history.pushState({}, '', url);
         }
+        Logger.debug('[Router] Navigating to', url);
         await this.navigate(url.pathname);
     }
 
@@ -481,17 +538,21 @@ class Router {
      * @returns {any|{path: *, pattern: *, callback: *, params: *, query: {[p: string]: string}}}
      */
     matchRoute(path) {
+        Logger.debug('[Router] Matching route for', path);
         if (this.cache.has(path)) {
             return this.cache.get(path);
         }
 
+        Logger.debug('[Router] Route not found in cache, performing match');
         const result = this._performMatch(path);
 
         if (this.cache.size >= this.cacheLimit) {
+            Logger.debug('[Router] Cache limit reached, removing oldest entry');
             const firstKey = this.cache.keys().next().value;
             this.cache.delete(firstKey);
         }
 
+        Logger.debug('[Router] Caching result for', path);
         this.cache.set(path, result);
         return result;
     }
@@ -535,6 +596,7 @@ class Router {
      * Clear the cache of routes.
      */
     clearCache() {
+        Logger.debug('[Router] Clearing cache');
         this.cache.clear();
     }
 
@@ -542,6 +604,7 @@ class Router {
      * Reset the redirect count.
      */
     resetRedirectCount() {
+        Logger.debug('[Router] Resetting redirect count');
         this.redirectCount = 0;
     }
 
@@ -551,6 +614,7 @@ class Router {
      * @returns {string|*}
      */
     getFullPath(path) {
+        Logger.debug('[Router] Getting full path for', path);
         return this.useHash ? `#${path}` : path;
     }
 
@@ -559,6 +623,7 @@ class Router {
      * @returns {string|string}
      */
     getPathFromLocation() {
+        Logger.debug('[Router] Getting path from location');
         return this.useHash
             ? window.location.hash.slice(1) || '/'
             : window.location.pathname;
@@ -568,6 +633,8 @@ class Router {
      * Start listening for navigation events.
      */
     listen() {
+        Logger.debug('[Router] Starting to listen for navigation events');
+        
         this._handleNavigation = () => {
             this.redirectCount = 0;
             this.navigate(this.getPathFromLocation()).then(r => {});
@@ -588,10 +655,12 @@ class Router {
             }
         };
 
+        Logger.debug('[Router] Listening for navigation events');
         window.addEventListener(this.useHash ? 'hashchange' : 'popstate', this._handleNavigation);
+        
+        Logger.debug('[Router] Listening for link clicks');
         document.addEventListener('click', this._handleLinkClick);
 
-        // Инициализация плагинов
         this._initPlugins();
 
         this.redirectCount = 0;
@@ -605,6 +674,7 @@ class Router {
      * @private
      */
     _initPlugins() {
+        Logger.debug('[Router] Init plugins');
         this.plugins.forEach(({ plugin, options }) => {
             if (typeof plugin.onInit === 'function') {
                 plugin.onInit(this, options);
@@ -621,27 +691,37 @@ class Router {
     usePlugin(plugin, options = {}) {
         if (!plugin) return this;
 
+        Logger.debug('[Router] Using plugin', plugin);
+
         if (typeof plugin === 'object' && typeof plugin.install === 'function') {
+            Logger.debug('[Router] Installing plugin', plugin);
             plugin.install(this, options);
         } else if (typeof plugin === 'function') {
+            Logger.debug('[Router] Executing plugin', plugin);
             plugin(this, options);
         } else {
-            console.warn('Invalid plugin format. Plugin must be an object with install method or a function.');
+            Logger.warn('Invalid plugin format. Plugin must be an object with install method or a function.');
             return this;
         }
 
+        Logger.debug('[Router] Add plugin to store', plugin);
         this.plugins.push({ plugin, options });
 
+        Logger.debug('[Router] Plugin initialized');
         return this;
     }
     
     destroy() {
+        Logger.debug('[Router] Destroying router');
+        
         this.plugins.forEach(({ plugin, options }) => {
+            Logger.debug('[Router] Destroying plugin', plugin);
             if (typeof plugin.onDestroy === 'function') {
                 plugin.onDestroy(this, options);
             }
         });
 
+        Logger.debug('[Router] Removing event listeners');
         window.removeEventListener(this.useHash ? 'hashchange' : 'popstate', this._handleNavigation);
         document.removeEventListener('click', this._handleLinkClick);
         window.removeEventListener('unhandledrejection', this.handleError);
@@ -653,6 +733,7 @@ class Router {
         this.routes = {};
         this.plugins = [];
         this.cache.clear();
+        Logger.debug('[Router] Router destroyed');
     }
 }
 

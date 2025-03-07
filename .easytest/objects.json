@@ -37,26 +37,26 @@
   "d69814f5c61318d72b1fc0c084ab8cf456146526f2c4b4d7c7aaefcc6573841a": {
     "file": "__tests__\\state.test.js",
     "tests": 2,
-    "duration": 2.4001
+    "duration": 3.9901
   },
   "dd652a0803730c6d46502c8a00db1dc63683267d0c38ce20bde4acd08b122368": {
     "file": "__tests__\\sanitization.test.js",
     "tests": 9,
-    "duration": 1.5362
+    "duration": 1.8297
   },
   "65f4ee5a99846b785f7dcb56c8857cb34b93f91236faa1f7786933382d646190": {
     "file": "__tests__\\parameters.test.js",
     "tests": 2,
-    "duration": 0.7551
+    "duration": 1.2947
   },
   "a0082ecc822a0cdd78a8ebf026bbc7e3eee3d31b4a50a5e43b49b6109b2a4d3b": {
     "file": "__tests__\\navigation.test.js",
     "tests": 2,
-    "duration": 0.837
+    "duration": 0.7521
   },
   "e2f10bfe3fdeb81fe0125cbf1435d6dc8b6ea8ffcbe1c5dec658778ff0890c1d": {
     "file": "__tests__\\base.test.js",
     "tests": 4,
-    "duration": 1.1323
+    "duration": 1.4485
   }
 }
