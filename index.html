@@ -12,11 +12,11 @@
     <li><a href="/product/123">Product</a></li>
 </ul>
 <div id="content"></div>
-<script src="./lib/router.js"></script>
-<script>
+<script type="module">
+    import Router from './dist/router.js'
     Router.info()
     const content = document.getElementById('content')
-    const router = new Router()
+    const router = new Router({debug: true})
     router.addRoute('/', () => { content.innerHTML = '<h1>Index</h1>' })
     router.addRoute('/about', () => { content.innerHTML = '<h1>About</h1>' })
     router.addRoute('/products', () => { content.innerHTML = '<h1>Products</h1>' })

@@ -12,14 +12,14 @@ class Router {
     /**
      * Constructor initializes the Router instance with options.
      * @param {Object} options - Configuration options for the router.
-     * @param {string} options.fallback - Fallback route if no match is found.
-     * @param {number} options.maxRedirects - Maximum number of redirects allowed.
-     * @param {string} options.base - Base path for the router.
-     * @param {number} options.cacheLimit - Maximum number of cached routes.
-     * @param {boolean} options.enableSwipeNavigation - Enable swipe navigation.
-     * @param {boolean} options.useHash - Use hash-based routing.
-     * @param {Object} options.routes - Initial routes to be added.
-     * @param {Array} options.plugins - Initial plugins to be added.
+     *  @param {string} fallback - Fallback route if no match is found.
+     *  @param {number} maxRedirects - Maximum number of redirects allowed.
+     *  @param {string} base - Base path for the router.
+     *  @param {number} cacheLimit - Maximum number of cached routes.
+     *  @param {boolean} enableSwipeNavigation - Enable swipe navigation.
+     *  @param {boolean} useHash - Use hash-based routing.
+     *  @param {Array} routes - Initial routes to be added.
+     *  @param {Array} plugins - Initial plugins to be added.
      * 
      */
     constructor(options = {}) {
@@ -308,7 +308,7 @@ class Router {
      * @returns {Router}
      */
     addNestedRoute(parentPath, path, callback) {
-        Logger.debug('[Router] Adding nested route', path, 'to', parentPath);
+        Logger.debug(`[Router] Adding nested route ${path} to ${parentPath}`);
         const fullPath = `${parentPath}${path}`.replace(/\/\//g, '/');
         this.addRoute(fullPath, callback);
         return this; // Для цепочки вызовов
