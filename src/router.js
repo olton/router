@@ -1,15 +1,24 @@
 const version = "__VERSION__"
 const build_time = "__BUILD_TIME__"
 
+/**
+ * Router class provides client-side routing functionality for single-page applications.
+ * It supports features like route addition, navigation hooks, redirects, middleware,
+ * lazy-loaded routes, swipe navigation, and path sanitization for enhanced security.
+ */
 class Router {
-    static debug = false;
-
-    static log(...args) {
-        if (Router.debug) {
-            console.log('[Router]:', ...args);
-        }
-    }
-
+    /**
+     * Constructor initializes the Router instance with options.
+     * @param {Object} options - Configuration options for the router.
+     * @param {string} options.fallback - Fallback route if no match is found.
+     * @param {number} options.maxRedirects - Maximum number of redirects allowed.
+     * @param {string} options.base - Base path for the router.
+     * @param {number} options.cacheLimit - Maximum number of cached routes.
+     * @param {boolean} options.enableSwipeNavigation - Enable swipe navigation.
+     * @param {boolean} options.useHash - Use hash-based routing.
+     * @param {Object} options.routes - Initial routes to be added.
+     * 
+     */
     constructor(options = {}) {
         this.routes = {};
         this.fallbackRoute = options.fallback || '/';
@@ -25,6 +34,13 @@ class Router {
         this.enableSwipeNavigation = options.enableSwipeNavigation || false;
         this.current = null;
         this.redirects = {};
+        this.useHash = options.useHash || false;
+        this.events = {
+            beforeNavigate: [],
+            afterNavigate: [],
+            routeNotFound: [],
+            error: []
+        };
 
         if (this.enableSwipeNavigation) {
             this.initSwipeNavigation();
@@ -39,6 +55,40 @@ class Router {
         window.addEventListener('unhandledrejection', this.handleError.bind(this));
     }
 
+    /**
+     * Adds an event listener for a specific event.
+     * @param event
+     * @param callback
+     * @returns {Router}
+     */
+    on(event, callback) {
+        if (this.events[event]) {
+            this.events[event].push(callback);
+        }
+        return this;
+    }
+
+    /**
+     * Emit an event with optional arguments.
+     * @param event
+     * @param args
+     * @returns {boolean}
+     */
+    emit(event, ...args) {
+        if (this.events[event]) {
+            for (const callback of this.events[event]) {
+                const result = callback(...args);
+                if (event === 'beforeNavigate' && result === false) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Initialize swipe navigation for touch devices.
+     */
     initSwipeNavigation() {
         document.addEventListener('touchstart', (e) => {
             this.touchStartX = e.touches[0].clientX;
@@ -59,8 +109,12 @@ class Router {
         }, { passive: true });
     }
 
+    /**
+     * Handle errors during navigation.
+     * @param error
+     */
     handleError(error) {
-        Router.log('Critical error:', error);
+        this.emit('error', error);
         if (this.routes['/error']) {
             this.navigateTo('/error', true);
         } else {
@@ -68,6 +122,11 @@ class Router {
         }
     }
 
+    /**
+     * Sanitize the path to prevent XSS and path traversal attacks.
+     * @param path
+     * @returns {string}
+     */
     sanitizePath(path) {
         try {
             if (!path) return '/';
@@ -100,17 +159,20 @@ class Router {
 
             // Додаткові перевірки безпеки
             if (this.isBlockedPath(sanitized)) {
-                Router.log('Blocked malicious path:', path);
                 return '/';
             }
 
             return sanitized;
         } catch (e) {
-            Router.log('Invalid URL:', e);
             return '/';
         }
     }
 
+    /**
+     * Check if the path is blocked by any of the defined patterns.
+     * @param path
+     * @returns {boolean}
+     */
     isBlockedPath(path) {
         // Список заборонених шляхів
         const blockedPatterns = [
@@ -126,6 +188,11 @@ class Router {
         return blockedPatterns.some(pattern => pattern.test(path));
     }
 
+    /**
+     * Test the path against the router's rules.
+     * @param path
+     * @returns {{original, sanitized: string, isBlocked: boolean, isModified: boolean}}
+     */
     test(path) {
         const original = path;
         const sanitized = this.sanitizePath(path);
@@ -137,61 +204,197 @@ class Router {
         };
     }
 
+    /**
+     * Add a beforeEach hook to be executed
+     * @param hook
+     * @returns {Router}
+     */
     beforeEach(hook) {
-        Router.log('Register BE hook ', hook.name);
         this.beforeEachHooks.push(hook);
+        return this;
     }
 
+    /**
+     * Add an afterEach hook to be executed
+     * @param hook
+     * @returns {Router}
+     */
     afterEach(hook) {
-        Router.log('Register AE hook ', hook.name);
         this.afterEachHooks.push(hook);
+        return this;
     }
 
+    /**
+     * Add a middleware function to be executed before
+     * @param middleware
+     * @returns {Router}
+     */
     use(middleware) {
-        Router.log('Register middleware', middleware.name);
         this.middleware.push(middleware);
+        return this;
     }
 
+    /**
+     * Add a redirect from one path to another.
+     * @param from
+     * @param to
+     * @returns {Router|boolean}
+     */
     addRedirect(from, to) {
         if (this.redirects[from]) {
-            Router.log('Redirect already exists:', from);
             return false;
         }
-        Router.log('Add redirect:', from, '->', to);
         this.redirects[from] = to;
-    }
-    
-    addRoute(path, callback) {
-        Router.log('Add route :', path);
-        this.routes[path] = callback;
+        return this
     }
 
+    /**
+     * Add a route to the router.
+     * @param path
+     * @param callback
+     * @returns {Router}
+     */
+    addRoute(path, callback) {
+        this.routes[path] = callback;
+        return this
+    }
+
+    /**
+     * Add a nested route to the router.
+     * @param parentPath
+     * @param path
+     * @param callback
+     * @returns {Router}
+     */
+    addNestedRoute(parentPath, path, callback) {
+        const fullPath = `${parentPath}${path}`.replace(/\/\//g, '/');
+        this.addRoute(fullPath, callback);
+        return this; // Для цепочки вызовов
+    }
+
+    /**
+     * Add a lazy-loaded route to the router.
+     * @param path
+     * @param importFunc
+     * @returns {Router}
+     */
+    addLazyRoute(path, importFunc) {
+        this.addRoute(path, async (params) => {
+            try {
+                const module = await importFunc();
+                const component = module.default || module;
+                return component(params);
+            } catch (error) {
+                throw error;
+            }
+        });
+        return this;
+    }
+
+    /**
+     * Add a lazy-loaded nested route to the router.
+     * @param parentPath
+     * @param path
+     * @param importFunc
+     * @returns {Router}
+     */
+    addLazyNestedRoute(parentPath, path, importFunc) {
+        const fullPath = `${parentPath}${path}`.replace(/\/\//g, '/');
+        this.addLazyRoute(fullPath, importFunc);
+        return this; // Для цепочки вызовов
+    }
+
+    /**
+     * Add a fallback route to be used when no other routes match.
+     * @param path
+     * @returns {Router}
+     */
+    addFallbackRoute(path) {
+        this.fallbackRoute = path;
+        return this;
+    }
+
+    /**
+     * Add a 404 route to be used when no other routes match.
+     * @param path
+     * @returns {Router}
+     */
+    add404Route(path) {
+        this.routes['/404'] = path;
+        return this;
+    }
+
+    /**
+     * Add an error route to be used when an error occurs.
+     * @param path
+     * @returns {Router}
+     */
+    addErrorRoute(path) {
+        this.routes['/error'] = path;
+        return this;
+    }
+
+    /**
+     * Add a protected route with a guard function.
+     * @param path
+     * @param callback
+     * @param guardFunction
+     * @returns {Router}
+     */
+    addProtectedRoute(path, callback, guardFunction) {
+        this.addRoute(path, async (params) => {
+            if (await guardFunction(params)) {
+                return callback(params);
+            } else {
+                await this.navigateTo('/login', true);
+            }
+        });
+        return this;
+    }
+
+    /**
+     * Remove a route from the router.
+     * @param path
+     * @returns {Router}
+     */
     removeRoute(path) {
-        Router.log('Remove route :', path);
         if (this.routes[path]) {
             delete this.routes[path];
-            return true;
         }
-        return false;
-    }
-    
-    updateRoute(path, callback) {
-        Router.log('Update route :', path);
-        if (this.routes[path]) {
-            this.routes[path] = callback;
-            return true;
-        }
-        return false;
+        return this;
     }
 
+    /**
+     * Update an existing route with a new callback.
+     * @param path
+     * @param callback
+     * @returns {Router}
+     */
+    updateRoute(path, callback) {
+        if (this.routes[path]) {
+            this.routes[path] = callback;
+        }
+        return this;
+    }
+
+    /**
+     * Get the registered routes.
+     * @returns {*|{}}
+     */
     getRoutes() {
         return this.routes;
     }
 
+    /**
+     * Navigate to a specific path.
+     * @param path
+     * @returns {Promise<void>}
+     */
     async navigate(path) {
         if (this.redirectCount > this.maxRedirects) {
             console.error('Maximum redirect limit reached');
             this.redirectCount = 0;
+            this.emit('error', new Error('Maximum redirect limit reached'));
             await this.navigateTo('/error', true);
             return;
         }
@@ -201,48 +404,55 @@ class Router {
 
         if (route) {
             try {
-                
-                if (this.redirects[route.path]) {
-                    Router.log('Redirecting from', route.path, 'to', this.redirects[route.path]);
-                    await this.navigateTo(this.redirects[route.path], true);
-                    return;                    
+                // Событие перед навигацией
+                const canContinue = await this.emit('beforeNavigate', route);
+                if (canContinue === false) {
+                    return;
                 }
-                
+
+                if (this.redirects[route.path]) {
+                    await this.navigateTo(this.redirects[route.path], true);
+                    return;
+                }
+
                 this.redirectCount++;
 
                 for (const middleware of this.middleware) {
-                    Router.log('Run middleware:', middleware.name);
                     await middleware(route);
                 }
 
                 for (const hook of this.beforeEachHooks) {
-                    Router.log('Run BE hook :', hook.name);
                     await hook(route);
                 }
 
-                Router.log('Run route component with params:', route.params);
                 await route.callback(route.params);
 
                 for (const hook of this.afterEachHooks) {
-                    Router.log('Run AE hook :', hook.name);
                     await hook(route);
                 }
 
                 this.current = route;
+
+                this.emit('afterNavigate', route);
             } catch (error) {
                 console.error('Navigation error:', error);
+                this.emit('error', error); // Событие ошибки
                 this.routes['/error'] && this.routes['/error'](error);
             }
         } else {
-            Router.log('Run not found route!');
             this.redirectCount = 0;
+            this.emit('routeNotFound', path); // Событие "маршрут не найден"
             this.routes['/404'] && this.routes['/404']();
         }
     }
 
-
+    /**
+     * Navigate to a specific path and replace the current state.
+     * @param path
+     * @param replaceState
+     * @returns {Promise<void>}
+     */
     async navigateTo(path, replaceState = false) {
-        Router.log('Programmatic navigation to:', path);
         this.redirectCount = 0;
         const url = new URL(path, window.location.origin);
         if (replaceState) {
@@ -253,6 +463,11 @@ class Router {
         await this.navigate(url.pathname);
     }
 
+    /**
+     * Match a route against the registered routes.
+     * @param path
+     * @returns {any|{path: *, pattern: *, callback: *, params: *, query: {[p: string]: string}}}
+     */
     matchRoute(path) {
         if (this.cache.has(path)) {
             return this.cache.get(path);
@@ -269,8 +484,13 @@ class Router {
         return result;
     }
 
+    /**
+     * Perform the actual matching of the path against the registered routes.
+     * @param path
+     * @returns {{path, pattern: string, callback: *, params: *, query: {[p: string]: string}}|null}
+     * @private
+     */
     _performMatch(path) {
-        Router.log('Matching route for path:', path);
         const [_, queryString] = path.split('?');
         const queryParams = new URLSearchParams(queryString);
         const queryObject = Object.fromEntries(queryParams);
@@ -283,7 +503,6 @@ class Router {
             });
             const match = path.match(new RegExp(`^${regexPath}$`));
             if (match) {
-                Router.log('Route found:', route);
                 const params = match.slice(1).reduce((acc, value, index) => {
                     acc[paramNames[index]] = value;
                     return acc;
@@ -300,33 +519,67 @@ class Router {
         return null;
     }
 
+    /**
+     * Clear the cache of routes.
+     */
     clearCache() {
         this.cache.clear();
     }
 
+    /**
+     * Reset the redirect count.
+     */
     resetRedirectCount() {
         this.redirectCount = 0;
     }
 
+    /**
+     * Get the full path of a current path.
+     * @param path
+     * @returns {string|*}
+     */
+    getFullPath(path) {
+        return this.useHash ? `#${path}` : path;
+    }
+
+    /**
+     * Get the current path from the location.
+     * @returns {string|string}
+     */
+    getPathFromLocation() {
+        return this.useHash
+            ? window.location.hash.slice(1) || '/'
+            : window.location.pathname;
+    }
+
+    /**
+     * Start listening for navigation events.
+     */
     listen() {
-        window.addEventListener('popstate', () => {
-            Router.log('Popstate event triggered');
+        const event = this.useHash ? 'hashchange' : 'popstate';
+
+        window.addEventListener(event, () => {
             this.redirectCount = 0;
-            this.navigate(window.location.pathname);
+            this.navigate(this.getPathFromLocation());
         });
-        
+
         document.addEventListener('click', (event) => {
-            if (event.target.tagName === 'A' && event.target.href.startsWith(window.location.origin)) {
-                event.preventDefault();
-                Router.log('Popstate event triggered', event.target.href);
-                this.redirectCount = 0;
-                window.history.pushState({}, '', event.target.href);
-                this.navigate(event.target.pathname);
+            if (event.target.tagName === 'A') {
+                const href = event.target.getAttribute('href');
+                if (href && (
+                    (this.useHash && href.startsWith('#')) ||
+                    (!this.useHash && event.target.href.startsWith(window.location.origin))
+                )) {
+                    event.preventDefault();
+                    const path = this.useHash ? href.slice(1) : event.target.pathname;
+                    this.redirectCount = 0;
+                    this.navigateTo(path);
+                }
             }
         });
-        
+
         this.redirectCount = 0;
-        this.navigate(window.location.pathname);
+        this.navigate(this.getPathFromLocation());
     }
 }
 
