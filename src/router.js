@@ -17,6 +17,7 @@ class Router {
      * @param {boolean} options.enableSwipeNavigation - Enable swipe navigation.
      * @param {boolean} options.useHash - Use hash-based routing.
      * @param {Object} options.routes - Initial routes to be added.
+     * @param {Array} options.plugins - Initial plugins to be added.
      * 
      */
     constructor(options = {}) {
@@ -41,6 +42,7 @@ class Router {
             routeNotFound: [],
             error: []
         };
+        this.plugins = [];
 
         if (this.enableSwipeNavigation) {
             this.initSwipeNavigation();
@@ -50,6 +52,16 @@ class Router {
             for (const [path, callback] of Object.entries(options.routes)) {
                 this.addRoute(path, callback);
             }
+        }
+
+        if (options.plugins && Array.isArray(options.plugins)) {
+            options.plugins.forEach(plugin => {
+                if (Array.isArray(plugin)) {
+                    this.usePlugin(plugin[0], plugin[1] || {});
+                } else {
+                    this.usePlugin(plugin);
+                }
+            });
         }
         
         window.addEventListener('unhandledrejection', this.handleError.bind(this));
@@ -556,14 +568,12 @@ class Router {
      * Start listening for navigation events.
      */
     listen() {
-        const event = this.useHash ? 'hashchange' : 'popstate';
-
-        window.addEventListener(event, () => {
+        this._handleNavigation = () => {
             this.redirectCount = 0;
-            this.navigate(this.getPathFromLocation());
-        });
+            this.navigate(this.getPathFromLocation()).then(r => {});
+        };
 
-        document.addEventListener('click', (event) => {
+        this._handleLinkClick = (event) => {
             if (event.target.tagName === 'A') {
                 const href = event.target.getAttribute('href');
                 if (href && (
@@ -573,13 +583,76 @@ class Router {
                     event.preventDefault();
                     const path = this.useHash ? href.slice(1) : event.target.pathname;
                     this.redirectCount = 0;
-                    this.navigateTo(path);
+                    this.navigateTo(path).then(r => {});
                 }
+            }
+        };
+
+        window.addEventListener(this.useHash ? 'hashchange' : 'popstate', this._handleNavigation);
+        document.addEventListener('click', this._handleLinkClick);
+
+        // Инициализация плагинов
+        this._initPlugins();
+
+        this.redirectCount = 0;
+        this.navigate(this.getPathFromLocation()).then(r => {});
+
+        return this;
+    }
+
+    /**
+     * Initialize plugins.
+     * @private
+     */
+    _initPlugins() {
+        this.plugins.forEach(({ plugin, options }) => {
+            if (typeof plugin.onInit === 'function') {
+                plugin.onInit(this, options);
+            }
+        });
+    }
+    
+    /**
+     * Use a plugin to extend the router's functionality.
+     * @param plugin
+     * @param options
+     * @returns {Router}
+     */
+    usePlugin(plugin, options = {}) {
+        if (!plugin) return this;
+
+        if (typeof plugin === 'object' && typeof plugin.install === 'function') {
+            plugin.install(this, options);
+        } else if (typeof plugin === 'function') {
+            plugin(this, options);
+        } else {
+            console.warn('Invalid plugin format. Plugin must be an object with install method or a function.');
+            return this;
+        }
+
+        this.plugins.push({ plugin, options });
+
+        return this;
+    }
+    
+    destroy() {
+        this.plugins.forEach(({ plugin, options }) => {
+            if (typeof plugin.onDestroy === 'function') {
+                plugin.onDestroy(this, options);
             }
         });
 
-        this.redirectCount = 0;
-        this.navigate(this.getPathFromLocation());
+        window.removeEventListener(this.useHash ? 'hashchange' : 'popstate', this._handleNavigation);
+        document.removeEventListener('click', this._handleLinkClick);
+        window.removeEventListener('unhandledrejection', this.handleError);
+
+        this._handleNavigation = null;
+        this._handleLinkClick = null;
+
+        // Очищаем состояние
+        this.routes = {};
+        this.plugins = [];
+        this.cache.clear();
     }
 }
 
