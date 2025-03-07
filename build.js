@@ -45,35 +45,17 @@ const options = {
 }
 
 if (production) {
-    console.log('Production build')
     await build({
         ...options,
         format: 'esm',
     })
-
-    await build({
-        ...options,
-        entryPoints: ['./src/browser.js'],
-        format: 'iife',
-        outfile: './lib/router.js',
-    })
 } else {
-    console.log('Development build')
     const ctxEsm = await context({
         ...options,
         format: 'esm',
     })
-
-    const ctxLib = await context({
-        ...options,
-        entryPoints: ['./src/browser.js'],
-        format: 'iife',
-        outfile: './lib/router.js',
-    })
-
     await Promise.all([
         ctxEsm.watch(), 
-        ctxLib.watch()
     ])
 }
 
