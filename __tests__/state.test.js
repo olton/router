@@ -1,6 +1,6 @@
 // router.test.js
 
-import { it, describe, beforeEach, expect } from '@olton/easytest'
+import { it, describe, beforeEach, expect } from '@olton/latte'
 import Router from '../src/index.js'
 
 describe('Router State Management', () => {
@@ -13,7 +13,7 @@ describe('Router State Management', () => {
     it('should update browser history', async () => {
         const initialPath = window.location.pathname;
         await router.navigateTo('/new-page');
-        expect(window.location.pathname).toBeNot(initialPath);
+        expect(window.location.pathname).not.toBe(initialPath);
         expect(window.location.pathname).toBe('/new-page');
     });
 
