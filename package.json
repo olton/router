@@ -38,7 +38,7 @@
     "dev": "npm run clean && cross-env NODE_NO_WARNINGS=1 MODE=development node build.js",
     "pub": "npm run build && npm publish --access public",
     "start": "vite --open",
-    "test": "easytest --dom --verbose --coverage --include='__tests__/*.test.js'"
+    "test": "latte --dom --verbose"
   },
   "devDependencies": {
     "@olton/esbuild-plugin-progress": "^0.3.0",
