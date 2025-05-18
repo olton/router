@@ -2,7 +2,7 @@
   "name": "@olton/router",
   "title": "Router",
   "description": "Router for SPA.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "main": "dist/router.js",
   "type": "module",
   "types": "ts/router.d.ts",
